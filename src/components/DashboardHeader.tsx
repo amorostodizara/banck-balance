@@ -24,8 +24,10 @@ const DashboardHeader = ({ user }: Props) => {
       </div>
 
       <div className="text-center">
-        <h1 className="font-bold text-foreground">BDA Project M2</h1>
-        <p className="text-xs text-muted-foreground">Dashboard Admin</p>
+        <h1 className="font-bold text-foreground">
+          Bases de Données Administration M2
+        </h1>
+        <p className="text-sm text-muted-foreground">Dashboard Admin</p>
       </div>
 
       <div className="flex items-center gap-4">
@@ -36,9 +38,14 @@ const DashboardHeader = ({ user }: Props) => {
           </span>
         </div>
         <span className="text-sm font-medium text-foreground">{user.name}</span>
-        <span className="text-xs text-muted-foreground capitalize">{user.username}</span>
+        <span className="text-xs text-muted-foreground capitalize">
+          {user.username}
+        </span>
         <User className="w-5 h-5 text-foreground" />
-        <button onClick={handleLogout} className="text-destructive hover:opacity-80">
+        <button
+          onClick={handleLogout}
+          className="text-destructive hover:opacity-80"
+        >
           <LogOut className="w-5 h-5" />
         </button>
       </div>

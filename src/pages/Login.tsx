@@ -25,26 +25,37 @@ const Login = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex w-full max-w-4xl items-center gap-16 px-8">
-        {/* Left illustration */}
-        <div className="hidden lg:flex flex-1 items-center justify-center">
-          <div className="relative w-72 h-72">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-52 h-40 bg-muted rounded-2xl shadow-lg flex flex-col items-center justify-center gap-3">
-                <div className="w-36 h-3 rounded-full bg-primary" />
-                <div className="w-36 h-3 rounded-full border-2 border-secondary flex items-center px-2">
-                  <span className="text-secondary text-xs tracking-widest">*******</span>
+        {/* Illustration 3D simulée */}
+        <div className="hidden flex-1 md:flex justify-center relative">
+          <div className="w-80 h-80 bg-blue-50 rounded-3xl shadow-2xl flex items-center justify-center transform -rotate-3 transition-all hover:rotate-0 duration-500">
+            <div className="text-center p-6">
+              <div className="relative inline-block">
+                <div className="w-40 h-52 bg-white rounded-xl shadow-lg border-2 border-blue-100 flex flex-col items-center justify-center gap-4">
+                  <div className="w-24 h-4 bg-primary rounded-full"></div>
+                  <div className="w-24 h-4 bg-yellow-400 rounded-full"></div>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="w-3 h-3 bg-blue-200 rounded-full"
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                <div className="absolute -top-10 -right-6 w-20 h-20 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-xl">
+                  <Lock className="text-white w-10 h-10" />
                 </div>
               </div>
             </div>
-            <Lock className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-16 text-primary" />
           </div>
         </div>
 
         {/* Right form */}
         <div className="flex-1 max-w-sm">
-          <h1 className="text-3xl font-bold mb-8">
-            <span className="text-primary">Con</span>
-            <span className="text-secondary">nexion</span>
+          <h1 className="text-3xl font-bold mb-8 text-center">
+            <span className="text-primary bg-gradient-to-r from-blue-600 to-yellow-500 bg-clip-text text-transparent">
+              Connexion
+            </span>
           </h1>
 
           <form onSubmit={handleLogin} className="space-y-6">
