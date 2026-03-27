@@ -1,159 +1,135 @@
+const mongoose = require("mongoose");
 const Versement = require("../models/Versement");
 const Client = require("../models/Client");
 const AuditVersement = require("../models/AuditVersement");
-
+const Counter = require("../models/Counter");
 class VersementService {
-  async addVersement(num_compte, montant, action_by) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async addVersement(num_compte, montant, action_by, session) {
+    // Vérifier client
+    const client = await Client.findOne({ num_compte }).session(session);
+    if (!client) throw new Error("Client non trouvé");
 
-    try {
-      // Vérifier si le client existe
-      const client = await Client.findOne({ num_compte }).session(session);
-      if (!client) {
-        throw new Error("Client non trouvé");
-      }
+    // Counters
+    const versementCounter = await Counter.findByIdAndUpdate(
+      { _id: "versement" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, session },
+    );
 
-      // Récupérer le dernier versement du client
-      const lastVersement = await Versement.findOne({ num_compte })
-        .sort({ num_versement: -1 })
-        .session(session);
+    const chequeCounter = await Counter.findByIdAndUpdate(
+      { _id: "cheque" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, session },
+    );
 
-      const ancien_montant = lastVersement ? lastVersement.montant : 0;
+    const lastVersement = await Versement.findOne({ num_compte })
+      .sort({ num_versement: -1 })
+      .session(session);
 
-      // Créer le versement
-      const versement = new Versement({
-        num_compte,
-        montant,
-        action_by,
-      });
+    const ancien_montant = lastVersement ? lastVersement.montant : 0;
 
-      await versement.save({ session });
+    const versement = new Versement({
+      num_compte,
+      num_versement: versementCounter.seq + 99,
+      num_cheque: chequeCounter.seq + 108,
+      montant,
+      action_by,
+    });
 
-      // Mettre à jour le solde du client
-      client.solde += montant;
-      await client.save({ session });
+    await versement.save({ session });
 
-      // Créer l'audit
-      const audit = new AuditVersement({
-        type_action: "INSERT",
-        num_versement: versement.num_versement,
-        num_compte,
-        nomclient: client.nomclient,
-        montant_ancien: ancien_montant,
-        montant_nouv: montant,
-        users: action_by,
-      });
+    await Client.updateOne(
+      { num_compte },
+      { $inc: { solde: montant } },
+      { session },
+    );
 
-      await audit.save({ session });
+    const audit = new AuditVersement({
+      type_action: "INSERT",
+      num_versement: versement.num_versement,
+      num_compte,
+      nomclient: client.nomclient,
+      montant_ancien: ancien_montant,
+      montant_nouv: montant,
+      users: action_by,
+    });
 
-      await session.commitTransaction();
-      return versement;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    await audit.save({ session });
+
+    return versement;
   }
 
-  async updateVersement(num_versement, nouveau_montant, action_by) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async updateVersement(num_versement, nouveau_montant, action_by, session) {
+    const versement = await Versement.findOne({ num_versement }).session(
+      session,
+    );
+    if (!versement) throw new Error("Versement non trouvé");
 
-    try {
-      const versement = await Versement.findOne({ num_versement }).session(
-        session,
-      );
-      if (!versement) {
-        throw new Error("Versement non trouvé");
-      }
+    const ancien_montant = versement.montant;
+    const difference = nouveau_montant - ancien_montant;
 
-      const ancien_montant = versement.montant;
-      const difference = nouveau_montant - ancien_montant;
+    const client = await Client.findOne({
+      num_compte: versement.num_compte,
+    }).session(session);
 
-      // Mettre à jour le solde du client
-      const client = await Client.findOne({
-        num_compte: versement.num_compte,
-      }).session(session);
-      if (client) {
-        client.solde += difference;
-        await client.save({ session });
-      }
+    // ✅ UNE SEULE FOIS
+    await Client.updateOne(
+      { num_compte: versement.num_compte },
+      { $inc: { solde: difference } },
+      { session },
+    );
 
-      // Mettre à jour le versement
-      versement.montant = nouveau_montant;
-      versement.action_by = action_by;
-      await versement.save({ session });
+    versement.montant = nouveau_montant;
+    versement.action_by = action_by;
+    await versement.save({ session });
 
-      // Créer l'audit
-      const audit = new AuditVersement({
-        type_action: "UPDATE",
-        num_versement: versement.num_versement,
-        num_compte: versement.num_compte,
-        nomclient: client ? client.nomclient : "",
-        montant_ancien: ancien_montant,
-        montant_nouv: nouveau_montant,
-        users: action_by,
-      });
+    const audit = new AuditVersement({
+      type_action: "UPDATE",
+      num_versement: versement.num_versement,
+      num_compte: versement.num_compte,
+      nomclient: client ? client.nomclient : "",
+      montant_ancien: ancien_montant,
+      montant_nouv: nouveau_montant,
+      users: action_by,
+    });
 
-      await audit.save({ session });
+    await audit.save({ session });
 
-      await session.commitTransaction();
-      return versement;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    return versement;
   }
 
-  async deleteVersement(num_versement, action_by) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async deleteVersement(num_versement, action_by, session) {
+    const versement = await Versement.findOne({ num_versement }).session(
+      session,
+    );
+    if (!versement) throw new Error("Versement non trouvé");
 
-    try {
-      const versement = await Versement.findOne({ num_versement }).session(
-        session,
-      );
-      if (!versement) {
-        throw new Error("Versement non trouvé");
-      }
+    const client = await Client.findOne({
+      num_compte: versement.num_compte,
+    }).session(session);
 
-      // Soustraire le montant du solde client
-      const client = await Client.findOne({
-        num_compte: versement.num_compte,
-      }).session(session);
-      if (client) {
-        client.solde -= versement.montant;
-        await client.save({ session });
-      }
+    const audit = new AuditVersement({
+      type_action: "DELETE",
+      num_versement: versement.num_versement,
+      num_compte: versement.num_compte,
+      nomclient: client ? client.nomclient : "",
+      montant_ancien: versement.montant,
+      montant_nouv: 0,
+      users: action_by,
+    });
 
-      // Créer l'audit avant suppression
-      const audit = new AuditVersement({
-        type_action: "DELETE",
-        num_versement: versement.num_versement,
-        num_compte: versement.num_compte,
-        nomclient: client ? client.nomclient : "",
-        montant_ancien: versement.montant,
-        montant_nouv: 0,
-        users: action_by,
-      });
+    await audit.save({ session });
 
-      await audit.save({ session });
+    // ✅ Mise à jour atomique du solde
+    await Client.updateOne(
+      { num_compte: versement.num_compte },
+      { $inc: { solde: -versement.montant } },
+      { session },
+    );
 
-      // Supprimer le versement
-      await Versement.deleteOne({ num_versement }).session(session);
+    await Versement.deleteOne({ num_versement }).session(session);
 
-      await session.commitTransaction();
-      return true;
-    } catch (error) {
-      await session.abortTransaction();
-      throw error;
-    } finally {
-      session.endSession();
-    }
+    return true;
   }
 
   async getAllVersements() {

@@ -33,17 +33,21 @@ const versementSchema = new mongoose.Schema(
 // Auto-increment pour num_versement et num_cheque
 versementSchema.pre("save", async function (next) {
   if (this.isNew) {
-    const lastVersement = await mongoose
-      .model("Versement")
-      .findOne()
-      .sort("-num_versement");
-    this.num_versement = lastVersement ? lastVersement.num_versement + 1 : 100;
+    const Counter = mongoose.model("Counter");
 
-    const lastCheque = await mongoose
-      .model("Versement")
-      .findOne()
-      .sort("-num_cheque");
-    this.num_cheque = lastCheque ? lastCheque.num_cheque + 1 : 109;
+    const versementCounter = await Counter.findOneAndUpdate(
+      { _id: "versement" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true },
+    );
+    this.num_versement = versementCounter.seq;
+
+    const chequeCounter = await Counter.findOneAndUpdate(
+      { _id: "cheque" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true },
+    );
+    this.num_cheque = chequeCounter.seq;
   }
   next();
 });

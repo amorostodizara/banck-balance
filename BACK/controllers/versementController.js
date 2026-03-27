@@ -1,5 +1,4 @@
 const versementService = require("../services/versementService");
-const Client = require("../models/Client");
 
 exports.getVersements = async (req, res) => {
   try {
@@ -44,26 +43,27 @@ exports.getVersementById = async (req, res) => {
 
 exports.addVersement = async (req, res) => {
   try {
-    const { num_compte, montant, action_by } = req.body;
+    const { num_compte, montant } = req.body;
+    const action_by = req.user.username;
 
-    // Validation
-    if (!num_compte || !montant || !action_by) {
+    if (!num_compte || montant === undefined) {
       return res.status(400).json({
         success: false,
-        error: "Tous les champs sont requis: num_compte, montant, action_by",
+        error: "num_compte et montant sont requis",
       });
     }
 
-    if (montant <= 0) {
+    const montantNumber = Number(montant);
+    if (isNaN(montantNumber) || montantNumber <= 0) {
       return res.status(400).json({
         success: false,
-        error: "Le montant doit être positif",
+        error: "Montant doit être un nombre positif",
       });
     }
 
     const versement = await versementService.addVersement(
       num_compte,
-      montant,
+      montantNumber,
       action_by,
     );
 
@@ -72,7 +72,7 @@ exports.addVersement = async (req, res) => {
       data: versement,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       error: error.message,
     });
@@ -82,25 +82,27 @@ exports.addVersement = async (req, res) => {
 exports.updateVersement = async (req, res) => {
   try {
     const { num_versement } = req.params;
-    const { montant, action_by } = req.body;
+    const { montant } = req.body;
+    const action_by = req.user.username;
 
-    if (!montant || !action_by) {
+    if (!montant) {
       return res.status(400).json({
         success: false,
-        error: "Le montant et action_by sont requis",
+        error: "Le montant est requis",
       });
     }
 
-    if (montant <= 0) {
+    const montantNumber = Number(montant);
+    if (isNaN(montantNumber) || montantNumber <= 0) {
       return res.status(400).json({
         success: false,
-        error: "Le montant doit être positif",
+        error: "Le montant doit être un nombre positif",
       });
     }
 
     const versement = await versementService.updateVersement(
       parseInt(num_versement),
-      montant,
+      montantNumber,
       action_by,
     );
 
@@ -119,12 +121,12 @@ exports.updateVersement = async (req, res) => {
 exports.deleteVersement = async (req, res) => {
   try {
     const { num_versement } = req.params;
-    const { action_by } = req.body;
+    const action_by = req.user.username;
 
-    if (!action_by) {
+    if (!num_versement) {
       return res.status(400).json({
         success: false,
-        error: "action_by est requis",
+        error: "Le numéro du versement est requis",
       });
     }
 
@@ -135,7 +137,7 @@ exports.deleteVersement = async (req, res) => {
       message: "Versement supprimé avec succès",
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       error: error.message,
     });
@@ -145,6 +147,14 @@ exports.deleteVersement = async (req, res) => {
 exports.getVersementsByCompte = async (req, res) => {
   try {
     const { num_compte } = req.params;
+
+    if (!num_compte) {
+      return res.status(400).json({
+        success: false,
+        error: "Le numéro du compte est requis",
+      });
+    }
+
     const versements = await versementService.getVersementsByCompte(
       parseInt(num_compte),
     );

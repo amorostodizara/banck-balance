@@ -5,7 +5,7 @@ const clientSchema = new mongoose.Schema(
     num_compte: {
       type: Number,
       unique: true,
-      required: true,
+      immutable: true,
     },
     nomclient: {
       type: String,
@@ -26,11 +26,25 @@ const clientSchema = new mongoose.Schema(
 // Auto-increment pour num_compte
 clientSchema.pre("save", async function (next) {
   if (this.isNew) {
-    const lastClient = await mongoose
-      .model("Client")
-      .findOne()
-      .sort("-num_compte");
-    this.num_compte = lastClient ? lastClient.num_compte + 1 : 10;
+    let isUnique = false;
+
+    while (!isUnique) {
+      const lastClient = await mongoose
+        .model("Client")
+        .findOne()
+        .sort("-num_compte");
+
+      const newNum = lastClient ? lastClient.num_compte + 1 : 10;
+
+      const exists = await mongoose
+        .model("Client")
+        .findOne({ num_compte: newNum });
+
+      if (!exists) {
+        this.num_compte = newNum;
+        isUnique = true;
+      }
+    }
   }
   next();
 });
