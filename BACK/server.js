@@ -36,7 +36,6 @@ app.use((req, res) => {
   });
 });
 
-// ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error(" ERROR:", err.message);
   res.status(500).json({
