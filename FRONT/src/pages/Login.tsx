@@ -1,24 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authenticate } from "@/lib/store";
+// import { authenticate } from "@/lib/store";
 import { User, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { login } from "@/services/authService";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // const handleLogin = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   const user = authenticate(username, password);
+  //   if (user) {
+  //     sessionStorage.setItem("currentUser", JSON.stringify(user));
+  //     navigate("/dashboard");
+  //   } else {
+  //     toast.error("Identifiants incorrects");
+  //   }
+  // };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = authenticate(username, password);
-    if (user) {
-      sessionStorage.setItem("currentUser", JSON.stringify(user));
+
+    try {
+      const data = await login(username, password);
+
+      // stocker user + token
+      sessionStorage.setItem("currentUser", JSON.stringify(data));
+      toast.success("Connexion réussie");
       navigate("/dashboard");
-    } else {
-      toast.error("Identifiants incorrects");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Identifiants incorrects");
     }
   };
 

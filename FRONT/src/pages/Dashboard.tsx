@@ -4,7 +4,9 @@ import DashboardHeader from "@/components/DashboardHeader";
 import ClientTab from "@/components/ClientTab";
 import VersementTab from "@/components/VersementTab";
 import AuditTab from "@/components/AuditTab";
-import type { User } from "@/lib/store";
+import { getCurrentUser } from "@/services/authService";
+// import { CurrentUser } from "@/lib/type";
+import { User } from "@/lib/store";
 
 type Tab = "client" | "versement" | "audit";
 
@@ -15,11 +17,21 @@ const Dashboard = () => {
 
   useEffect(() => {
     const raw = sessionStorage.getItem("currentUser");
-    if (!raw) { navigate("/"); return; }
-    setUser(JSON.parse(raw));
+    if (!raw) {
+      navigate("/", { replace: true });
+      return;
+    }
+
+    const { token } = JSON.parse(raw);
+    getCurrentUser(token)
+      .then((user) => setUser({ ...user, token })) // user = { _id, name, username, role, token }
+      .catch(() => {
+        sessionStorage.clear();
+        navigate("/", { replace: true });
+      });
   }, [navigate]);
 
-  if (!user) return null;
+  if (!user) return null; // ou loader
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "client", label: "Client" },
@@ -37,7 +49,9 @@ const Dashboard = () => {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`text-sm font-medium transition-colors ${
-              tab === t.key ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+              tab === t.key
+                ? "text-primary font-bold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {t.label}

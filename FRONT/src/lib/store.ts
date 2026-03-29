@@ -73,7 +73,12 @@ function initIfNeeded() {
     { num_compte: 12, nomclient: "Rasoa", solde: 0 },
   ];
 
-  const counters: Counters = { client: 13, versement: 100, cheque: 109, audit: 1 };
+  const counters: Counters = {
+    client: 13,
+    versement: 100,
+    cheque: 109,
+    audit: 1,
+  };
 
   save(KEYS.users, users);
   save(KEYS.clients, clients);
@@ -87,7 +92,10 @@ initIfNeeded();
 // --- Users ---
 export function authenticate(username: string, password: string): User | null {
   const users = load<User[]>(KEYS.users, []);
-  return users.find((u) => u.username === username && u.password === password) || null;
+  return (
+    users.find((u) => u.username === username && u.password === password) ||
+    null
+  );
 }
 
 // --- Clients ---
@@ -97,7 +105,12 @@ export function getClients(): Client[] {
 
 export function addClient(nomclient: string, solde: number = 0): Client {
   const clients = getClients();
-  const counters = load<Counters>(KEYS.counters, { client: 13, versement: 100, cheque: 109, audit: 1 });
+  const counters = load<Counters>(KEYS.counters, {
+    client: 13,
+    versement: 100,
+    cheque: 109,
+    audit: 1,
+  });
   const client: Client = { num_compte: counters.client++, nomclient, solde };
   clients.push(client);
   save(KEYS.clients, clients);
@@ -105,7 +118,11 @@ export function addClient(nomclient: string, solde: number = 0): Client {
   return client;
 }
 
-export function updateClient(num_compte: number, nomclient: string, solde: number) {
+export function updateClient(
+  num_compte: number,
+  nomclient: string,
+  solde: number,
+) {
   const clients = getClients();
   const idx = clients.findIndex((c) => c.num_compte === num_compte);
   if (idx >= 0) {
@@ -124,23 +141,41 @@ export function getVersements(): Versement[] {
   return load<Versement[]>(KEYS.versements, []);
 }
 
-export function addVersement(num_compte: number, montant: number, action_by: string): Versement {
+export function addVersement(
+  num_compte: number,
+  montant: number,
+  action_by: string,
+): Versement {
   const versements = getVersements();
   const clients = getClients();
-  const counters = load<Counters>(KEYS.counters, { client: 13, versement: 100, cheque: 109, audit: 1 });
+  const counters = load<Counters>(KEYS.counters, {
+    client: 13,
+    versement: 100,
+    cheque: 109,
+    audit: 1,
+  });
 
   // before_insert trigger: auto-generate num_cheque
   const num_cheque = ++counters.cheque;
   const num_versement = counters.versement++;
 
-  const versement: Versement = { num_versement, num_cheque, num_compte, montant, action_by };
+  const versement: Versement = {
+    num_versement,
+    num_cheque,
+    num_compte,
+    montant,
+    action_by,
+  };
   versements.push(versement);
 
   // after_insert trigger: get ancien_montant
   const previousVersements = versements
-    .filter((v) => v.num_compte === num_compte && v.num_versement < num_versement)
+    .filter(
+      (v) => v.num_compte === num_compte && v.num_versement < num_versement,
+    )
     .sort((a, b) => b.num_versement - a.num_versement);
-  const ancien_montant = previousVersements.length > 0 ? previousVersements[0].montant : 0;
+  const ancien_montant =
+    previousVersements.length > 0 ? previousVersements[0].montant : 0;
 
   // Update client solde
   const clientIdx = clients.findIndex((c) => c.num_compte === num_compte);
@@ -170,10 +205,19 @@ export function addVersement(num_compte: number, montant: number, action_by: str
   return versement;
 }
 
-export function updateVersement(num_versement: number, montant: number, action_by: string) {
+export function updateVersement(
+  num_versement: number,
+  montant: number,
+  action_by: string,
+) {
   const versements = getVersements();
   const clients = getClients();
-  const counters = load<Counters>(KEYS.counters, { client: 13, versement: 100, cheque: 109, audit: 1 });
+  const counters = load<Counters>(KEYS.counters, {
+    client: 13,
+    versement: 100,
+    cheque: 109,
+    audit: 1,
+  });
   const idx = versements.findIndex((v) => v.num_versement === num_versement);
   if (idx < 0) return;
 
@@ -208,7 +252,12 @@ export function updateVersement(num_versement: number, montant: number, action_b
 export function deleteVersement(num_versement: number, action_by: string) {
   const versements = getVersements();
   const clients = getClients();
-  const counters = load<Counters>(KEYS.counters, { client: 13, versement: 100, cheque: 109, audit: 1 });
+  const counters = load<Counters>(KEYS.counters, {
+    client: 13,
+    versement: 100,
+    cheque: 109,
+    audit: 1,
+  });
   const idx = versements.findIndex((v) => v.num_versement === num_versement);
   if (idx < 0) return;
 
