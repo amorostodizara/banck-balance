@@ -17,10 +17,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-// ROUTE TEST
-app.get("/", (req, res) => {
-  res.json({ message: "API Banque active" });
-});
+app.use(
+  cors({
+    origin: "http://localhost:8081", // Vite
+    credentials: true,
+  }),
+);
 
 // ROUTES
 app.use("/api/auth", require("./routes/authRoutes"));
